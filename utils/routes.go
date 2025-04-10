@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 )
 
 func GetTasks(c *gin.Context) {
@@ -25,7 +26,7 @@ func GetTasks(c *gin.Context) {
 		var task models.Task
 
 		if err := rows.Scan(&task.HashKey, &task.Name, &task.Description, &task.Created, &task.Updated, &task.Deadline, &task.Closed); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
@@ -77,13 +78,17 @@ func AddTask(c *gin.Context) {
 					errors = append(errors, errorText)
 				}
 			}
-			c.JSON(http.StatusInternalServerError, gin.H{"error": errors})
+			c.JSON(http.StatusBadRequest, gin.H{"error": errors})
 			return
 		}
 	}
-
-	_, err = dbase.Exec("INSERT INTO todo_list.tasks (name, description, deadline, closed) VALUES ($1, $2, $3, $4)",
-		task.Name, task.Description, task.Deadline, task.Closed)
+	if task.HashKey == uuid.MustParse("00000000-0000-0000-0000-000000000000") {
+		_, err = dbase.Exec("INSERT INTO todo_list.tasks (hash_key, name, description, deadline, closed) VALUES ('00000000-0000-0000-0000-000000000000', $1, $2, $3, $4)",
+			task.Name, task.Description, task.Deadline, task.Closed)
+	} else {
+		_, err = dbase.Exec("INSERT INTO todo_list.tasks (name, description, deadline, closed) VALUES ($1, $2, $3, $4)",
+			task.Name, task.Description, task.Deadline, task.Closed)
+	}
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err})
