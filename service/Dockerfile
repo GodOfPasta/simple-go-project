@@ -4,14 +4,14 @@ RUN apk add --no-cache gcc musl-dev
 
 WORKDIR /app
 
-COPY service/go.mod service/go.sum ./
+COPY go.mod go.sum ./
 RUN go mod download
 
-COPY ./service .
+COPY . .
 
 RUN CGO_ENABLED=1 GOOS=linux go build -o simple-go-project main.go
 
-FROM alpine:latest
+FROM alpine:latest AS alpine
 WORKDIR /app
 COPY --from=builder /app/simple-go-project .
 EXPOSE 8080
